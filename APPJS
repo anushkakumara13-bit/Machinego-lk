@@ -1,0 +1,183 @@
+import { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import * as Location from 'expo-location';
+
+const MACHINE_CODES = [
+ {code:"SN-001", name:"Single Needle", price:"1000-1800"},
+ {code:"DN-002", name:"Double Needle", price:"1500-2500"},
+ {code:"OL-003", name:"Overlock", price:"1800-2800"},
+ {code:"FL-004", name:"Flatlock", price:"1800-3000"},
+ {code:"KN-005", name:"Kansai", price:"2000-3500"},
+ {code:"BH-006", name:"Buttonhole", price:"1800-2700"},
+ {code:"BA-007", name:"Button Attach", price:"1000-1800"},
+];
+
+export default function App(){
+ const [screen,setScreen]=useState("signup"); // signup, login, home, breakdown, booking, basement, profile
+ const [city,setCity]=useState("Locating...");
+ const [address,setAddress]=useState("1234 Garment St");
+ const [phone,setPhone]=useState("+94 77 123 4567");
+ const [name,setName]=useState("");
+ const [otp,setOtp]=useState("528913");
+ const [category,setCategory]=useState(null);
+ const [selectedCode,setSelectedCode]=useState("SN-001");
+ const [issue,setIssue]=useState("");
+ const [timer,setTimer]=useState(1722);
+ const [breakdownOn,setBreakdownOn]=useState(true);
+
+ useEffect(()=>{(async()=>{
+  let {status}=await Location.requestForegroundPermissionsAsync();
+  if(status!=='granted'){setCity("Colombo"); return;}
+  let loc=await Location.getCurrentPositionAsync({});
+  let ad=await Location.reverseGeocodeAsync(loc.coords);
+  setCity(ad[0]?.city || "Colombo");
+  setAddress(ad[0]?.street || "1234 Garment St, Colombo");
+ })()},[]);
+
+ useEffect(()=>{
+  if(screen!=='booking') return;
+  const t=setInterval(()=>{ if(breakdownOn) setTimer(v=>v>0?v-1:0) },1000);
+  return()=>clearInterval(t);
+ },[screen,breakdownOn]);
+
+ const fmt=(s)=>`${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor((s%3600)/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+ const petrol = city==="Colombo"?500: city==="Horana"?800:1000;
+
+ return(
+  <View style={s.bg}>
+   <Text style={s.logo}>MACHINEGO.LK | {city} Accurate</Text>
+
+   {/* 1 කොටස - SIGNUP */}
+   {screen==="signup" && (
+    <View style={s.card}>
+     <Text style={s.title}>1 කොටස - Customer Signup</Text>
+     <TextInput style={s.input} placeholder="Name" value={name} onChangeText={setName}/>
+     <TextInput style={s.input} placeholder="+94 77..." value={phone} onChangeText={setPhone}/>
+     <TouchableOpacity style={s.btn} onPress={()=>Alert.alert("OTP Sent","528913")}><Text style={s.btnT}>Get OTP</Text></TouchableOpacity>
+     <TextInput style={s.input} placeholder="528913" value={otp} onChangeText={setOtp}/>
+     <View style={s.gps}><Text style={s.gpsT}>📍 Live Location ON - {city} Verified ✓</Text></View>
+     <TouchableOpacity style={s.btn} onPress={()=>setScreen("login")}><Text style={s.btnT}>Create Account → users {'{'}phone, otp_verified:true, lat lng{'}'}</Text></TouchableOpacity>
+    </View>
+   )}
+
+   {/* 2 කොටස - LOGIN + CATEGORY */}
+   {screen==="login" && (
+    <View style={s.card}>
+     <Text style={s.title}>2 කොටස - Login + Category</Text>
+     <TextInput style={s.input} placeholder="Password / OTP"/>
+     <TouchableOpacity style={s.btn} onPress={()=>setScreen("home")}><Text style={s.btnT}>Login / Login with OTP</Text></TouchableOpacity>
+    </View>
+   )}
+
+   {screen==="home" && (
+    <ScrollView style={s.card}>
+     <Text style={s.title}>Home - Live Badge {city}</Text>
+     <TouchableOpacity style={s.cat} onPress={()=>{setCategory("Juki"); setScreen("breakdown")}}><Text style={s.catT}>1. Juki (Juki/Jack/Siruba)</Text></TouchableOpacity>
+     <TouchableOpacity style={s.cat} onPress={()=>{setCategory("General"); setScreen("breakdown")}}><Text style={s.catT}>2. General / පරිපථ (Motor,Board,Pedal)</Text></TouchableOpacity>
+     <TouchableOpacity style={s.cat} onPress={()=>{setCategory("Electrician"); setScreen("breakdown")}}><Text style={s.catT}>3. Electrician / විදුලි (Wiring,Light,Plug)</Text></TouchableOpacity>
+    </ScrollView>
+   )}
+
+   {/* 3 කොටස - BREAKDOWN FORM */}
+   {screen==="breakdown" && (
+    <ScrollView style={s.card}>
+     <Text style={s.title}>3 කොටස - Breakdown Form - {category}</Text>
+     <Text style={s.label}>Machine Code 7ක්:</Text>
+     {MACHINE_CODES.map(m=>(
+      <TouchableOpacity key={m.code} style={[s.codeBox, selectedCode===m.code && s.codeActive]} onPress={()=>setSelectedCode(m.code)}>
+       <Text style={s.codeText}>{m.code} - {m.name} - LKR {m.price}</Text>
+      </TouchableOpacity>
+     ))}
+     <TextInput style={s.input} placeholder="Issue - මැෂින් එක නූල් කඩනවා" value={issue} onChangeText={setIssue} multiline/>
+     <TouchableOpacity style={s.photoBtn}><Text>📷 Photo Upload 4ක් දක්වා (Gallery)</Text></TouchableOpacity>
+     <View style={s.gps}><Text style={s.gpsT}>Live Map Pin - {address} Auto Detect</Text></View>
+     <View style={s.priceBox}>
+      <Text style={s.priceT}>Price List Auto:</Text>
+      <Text>Minimum Price LKR 1000 Fix</Text>
+      <Text>Petrol Charge {petrol} - 10km-500, 10-25km-800, 25km+ 1000</Text>
+      <Text style={s.bold}>Total = 1000 + {petrol} + Service</Text>
+     </View>
+     <TouchableOpacity style={s.btn} onPress={()=>{setTimer(1722); setScreen("booking")}}><Text style={s.btnT}>Submit Breakdown →</Text></TouchableOpacity>
+    </ScrollView>
+   )}
+
+   {/* 4 කොටස - BOOKING */}
+   {screen==="booking" && (
+    <View style={s.card}>
+     <Text style={s.title}>4 කොටස - Booking</Text>
+     <Text style={s.big}>Booking ID #BK-784392 Confirmed ✓</Text>
+     <Text style={s.timer}>{fmt(timer)}</Text>
+     <View style={s.row}>
+      <TouchableOpacity style={[s.toggle, breakdownOn && s.toggleOn]} onPress={()=>setBreakdownOn(!breakdownOn)}><Text style={s.btnT}>Breakdown {breakdownOn?"ON":"OFF"}</Text></TouchableOpacity>
+     </View>
+     <Text>Cost: Petrol {petrol} + Min 1000 = {1000+petrol}</Text>
+     <Text style={s.small}>00:00 වෙනකන් Cancel කරොත් Fee නෑ - Auto Cancel</Text>
+     <View style={s.row}>
+      <TouchableOpacity style={s.btnSmall} onPress={()=>setScreen("home")}><Text style={s.btnT}>Cancel</Text></TouchableOpacity>
+      <TouchableOpacity style={s.btnSmall} onPress={()=>setScreen("basement")}><Text style={s.btnT}>Confirm → Mechanic ට</Text></TouchableOpacity>
+     </View>
+    </View>
+   )}
+
+   {/* 5 කොටස - BASEMENT + PROFILE */}
+   {screen==="basement" && (
+    <ScrollView style={s.card}>
+     <Text style={s.title}>5 කොටස - Basement</Text>
+     <Text style={s.catT}>5. Machine Sale - Excavator $89,500</Text>
+     <Text style={s.catT}>5.1 Rent - දවසට Rent</Text>
+     <Text style={s.catT}>B1 Tools, B2 Heavy Machinery Filter</Text>
+     <TouchableOpacity style={s.btn} onPress={()=>setScreen("profile")}><Text style={s.btnT}>Go to Profile →</Text></TouchableOpacity>
+    </ScrollView>
+   )}
+
+   {screen==="profile" && (
+    <View style={s.card}>
+     <Text style={s.title}>Profile - {name}</Text>
+     <Text>Photo | ID | Rating 4.8 ★ | Earnings</Text>
+     <View style={s.gps}><Text style={s.gpsT}>Available ON Duty Toggle ON</Text></View>
+     <TouchableOpacity style={[s.btn,{backgroundColor:'red'}]} onPress={()=>setScreen("signup")}><Text style={s.btnT}>Logout (උඩමයි යටමයි Fix)</Text></TouchableOpacity>
+    </View>
+   )}
+
+   {/* FIXED BOTTOM MENU */}
+   <View style={s.bottom}>
+    {[
+     {l:"Home", sc:"home"}, {l:"Jobs", sc:"home"}, {l:"Breakdown", sc:"breakdown"}, {l:"Profile", sc:"profile"}, {l:"Logout", sc:"signup"}
+    ].map(b=>(
+     <TouchableOpacity key={b.l} onPress={()=>setScreen(b.sc)}><Text style={s.bottomT}>{b.l}</Text></TouchableOpacity>
+    ))}
+   </View>
+  </View>
+ )
+}
+
+const s=StyleSheet.create({
+ bg:{flex:1, backgroundColor:'#f5f5f5', paddingTop:40},
+ logo:{fontWeight:'900', textAlign:'center', fontSize:16},
+ card:{backgroundColor:'#fff', margin:10, borderRadius:12, padding:12, flex:1},
+ title:{fontWeight:'800', fontSize:15, marginBottom:8},
+ input:{borderWidth:1, borderColor:'#ddd', borderRadius:8, padding:10, marginVertical:5},
+ btn:{backgroundColor:'#000', padding:12, borderRadius:8, alignItems:'center', marginTop:8},
+ btnT:{color:'#fff', fontWeight:'700'},
+ gps:{backgroundColor:'#e8f5e9', padding:8, borderRadius:6, marginVertical:6},
+ gpsT:{color:'green', fontWeight:'700'},
+ cat:{backgroundColor:'#e3f2fd', padding:14, borderRadius:10, marginVertical:6},
+ catT:{fontWeight:'700'},
+ codeBox:{borderWidth:1, borderColor:'#ddd', padding:8, borderRadius:8, marginVertical:3},
+ codeActive:{backgroundColor:'#000'},
+ codeText:{fontSize:12, fontWeight:'600'},
+ photoBtn:{borderWidth:1, borderStyle:'dashed', padding:12, borderRadius:8, alignItems:'center', marginVertical:6},
+ priceBox:{backgroundColor:'#fff3e0', padding:10, borderRadius:8, marginVertical:6},
+ priceT:{fontWeight:'800'},
+ bold:{fontWeight:'800', marginTop:4},
+ big:{fontWeight:'900', fontSize:14, textAlign:'center', marginVertical:8},
+ timer:{fontSize:28, fontWeight:'900', textAlign:'center', marginVertical:10},
+ row:{flexDirection:'row', justifyContent:'space-between', marginTop:10},
+ toggle:{backgroundColor:'#666', padding:10, borderRadius:8, flex:1, alignItems:'center', marginRight:5},
+ toggleOn:{backgroundColor:'green'},
+ btnSmall:{backgroundColor:'#000', padding:10, borderRadius:8, flex:1, marginLeft:5, alignItems:'center'},
+ small:{fontSize:11, color:'#666', marginTop:6},
+ bottom:{flexDirection:'row', justifyContent:'space-around', backgroundColor:'#000', padding:12},
+ bottomT:{color:'#fff', fontWeight:'700', fontSize:12},
+ label:{fontWeight:'700', marginTop:8},
+});
