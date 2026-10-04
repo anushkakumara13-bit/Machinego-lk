@@ -1,0 +1,106 @@
+import React, { useState, useEffect } from 'react';
+import { View, Text, TextInput, TouchableOpacity, FlatList, StyleSheet, Alert } from 'react-native';
+import * as Location from 'expo-location';
+
+export default function App() {
+  const [step, setStep] = useState('login'); // login -> otp -> home -> booking
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState('');
+  const [category, setCategory] = useState('JUKI');
+  const [location, setLocation] = useState(null);
+
+  // GPS Permission
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === 'granted') {
+        let loc = await Location.getCurrentPositionAsync({});
+        setLocation(loc);
+      }
+    })();
+  }, []);
+
+  // Dummy Mechanics - Category එක අනුව
+  const mechanics = [
+    { id: '1', name: 'Sunil - JUKI Expert', category: 'JUKI', online: true },
+    { id: '2', name: 'Nimal Electrical', category: 'විදුලි', online: true },
+    { id: '3', name: 'Kamal Circuit', category: 'පරිපථ', online: false },
+    { id: '4', name: 'Amal JUKI', category: 'JUKI', online: true },
+  ].filter(m => m.category === category);
+
+  // 1. Login Screen
+  if (step === 'login') {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>MachineGo - Login</Text>
+        <TextInput placeholder="Phone 71..." style={styles.input} value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+        <TouchableOpacity style={styles.btn} onPress={() => setStep('otp')}>
+          <Text style={styles.btnText}>Send Real OTP</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // 2. OTP Screen
+  if (step === 'otp') {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>Enter OTP sent to {phone}</Text>
+        <TextInput placeholder="Enter OTP" style={styles.input} value={otp} onChangeText={setOtp} keyboardType="number-pad" />
+        <TouchableOpacity style={styles.btn} onPress={() => setStep('home')}>
+          <Text style={styles.btnText}>Verify & Login</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // 3. Home + Mechanic List + Book
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Home - GPS: {location ? 'ON' : 'OFF'}</Text>
+      
+      {/* Categories - ඔයාගේ Diagram එක */}
+      <View style={styles.row}>
+        {['JUKI', 'විදුලි', 'පරිපථ'].map(cat => (
+          <TouchableOpacity key={cat} style={[styles.catBtn, category === cat && styles.catActive]} onPress={() => setCategory(cat)}>
+            <Text>{cat === 'JUKI' ? '🔧 JUKI' : cat === 'විදුලි' ? '⚡ විදුලි' : '🔌 පරිපථ'}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <FlatList
+        data={mechanics}
+        keyExtractor={i => i.id}
+        renderItem={({ item }) => (
+          <View style={styles.card}>
+            <Text style={styles.name}>{item.name}</Text>
+            <Text>{item.online ? '🟢 Online' : '🔴 Offline'}</Text>
+            <View style={styles.row}>
+              <TouchableOpacity style={[styles.smallBtn, {backgroundColor: '#22c55e'}]} onPress={() => Alert.alert("Booking Timer Started", `Book Now to ${item.name}`)}>
+                <Text style={styles.btnText}>Book Now</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.smallBtn, {backgroundColor: '#3b82f6'}]} onPress={() => Alert.alert("Arrange Time", `Booking Request Sent - Date + Time`)}>
+                <Text style={styles.btnText}>Arrange Time</Text>
+              </TouchableOpacity>
+            </View>
+            <Text style={{marginTop:5, fontSize:10}}>Confirm → GPS / Live → Job Tracking → Payment / Rating</Text>
+          </View>
+        )}
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 20, paddingTop: 60, backgroundColor: '#fff' },
+  title: { fontSize: 20, fontWeight: 'bold', marginBottom: 20 },
+  input: { borderWidth: 1, borderColor: '#ccc', padding: 12, borderRadius: 8, marginBottom: 15 },
+  btn: { backgroundColor: 'black', padding: 15, borderRadius: 8, alignItems: 'center' },
+  btnText: { color: 'white', fontWeight: 'bold' },
+  row: { flexDirection: 'row', gap: 10, marginBottom: 15 },
+  catBtn: { padding: 10, borderWidth: 1, borderRadius: 20, paddingHorizontal: 15 },
+  catActive: { backgroundColor: '#fde047' },
+  card: { borderWidth: 1, borderColor: '#eee', padding: 15, borderRadius: 12, marginBottom: 10 },
+  name: { fontWeight: 'bold' },
+  smallBtn: { padding: 8, borderRadius: 6, marginTop: 8, marginRight: 8 }
+});
