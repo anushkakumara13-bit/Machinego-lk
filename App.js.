@@ -1,0 +1,1167 @@
+// ============================================================
+// MachineGo - Full Connected Prototype
+// Flow:
+// Signup -> OTP -> Login -> Home -> Category
+// -> Breakdown -> Booking -> Basement -> Profile -> Logout
+// ============================================================
+
+import React, {useEffect, useState} from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ScrollView,
+} from 'react-native';
+
+// ============================================================
+// DATABASE / SETTINGS
+// ============================================================
+
+const DATABASE = {
+  breakdown_codes: {
+    'SN-001': {
+      type: 'Single Needle',
+      min: 1000,
+      max: 1800,
+      note: 'Labour only',
+    },
+
+    'DN-002': {
+      type: 'Double Needle',
+      min: 1500,
+      max: 2500,
+      note: 'Dual adjustment',
+    },
+
+    'OL-003': {
+      type: 'Overlock',
+      min: 1800,
+      max: 2800,
+      note: 'Knife extra',
+    },
+
+    'FL-004': {
+      type: 'Flatlock',
+      min: 1800,
+      max: 3000,
+      note: 'Calibration',
+    },
+
+    'KN-005': {
+      type: 'Kansai',
+      min: 2000,
+      max: 3500,
+      note: 'Heavy mechanism',
+    },
+
+    'BH-006': {
+      type: 'Buttonhole',
+      min: 1800,
+      max: 2700,
+      note: 'Cutter extra',
+    },
+
+    'BA-007': {
+      type: 'Button Attach',
+      min: 1000,
+      max: 1800,
+      note: 'Clamp check',
+    },
+  },
+
+  pricing: {
+    minimum: 1000,
+    petrol: {
+      within10km: 500,
+      '10-25km': 800,
+      above25km: 1000,
+    },
+  },
+};
+
+// ============================================================
+// SMALL REUSABLE BUTTON
+// ============================================================
+
+function AppButton({title, onPress, danger = false}) {
+  return (
+    <TouchableOpacity
+      style={[styles.button, danger && styles.dangerButton]}
+      onPress={onPress}>
+      <Text style={styles.buttonText}>{title}</Text>
+    </TouchableOpacity>
+  );
+}
+
+// ============================================================
+// 1. SIGNUP
+// ============================================================
+
+function SignupScreen({onNext}) {
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('+94');
+  const [otpSent, setOtpSent] = useState(false);
+
+  const sendOTP = () => {
+    if (!name || phone.length < 10) {
+      Alert.alert('Error', 'Name සහ Phone Number ඇතුළත් කරන්න.');
+      return;
+    }
+
+    setOtpSent(true);
+
+    Alert.alert(
+      'OTP Sent',
+      'Demo OTP එක 528913.\n\nReal SMS OTP එක පස්සේ Firebase වලින් connect කරමු.',
+    );
+  };
+
+  const createAccount = () => {
+    if (!otpSent) {
+      Alert.alert('Error', 'මුලින් OTP ලබාගන්න.');
+      return;
+    }
+
+    // Signup -> OTP
+    onNext({
+      name,
+      phone,
+    });
+  };
+
+  return (
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.logo}>MachineGo</Text>
+
+      <Text style={styles.title}>1. Create Account</Text>
+
+      <TextInput
+        style={styles.input}
+        placeholder="Full Name"
+        value={name}
+        onChangeText={setName}
+      />
+
+      <TextInput
+        style={styles.input}
+        placeholder="+94 77 123 4567"
+        keyboardType="phone-pad"
+        value={phone}
+        onChangeText={setPhone}
+      />
+
+      <AppButton title="Get OTP" onPress={sendOTP} />
+
+      {otpSent && (
+        <Text style={styles.success}>
+          ✓ OTP sent successfully
+        </Text>
+      )}
+
+      <AppButton
+        title="Continue to OTP"
+        onPress={createAccount}
+      />
+    </ScrollView>
+  );
+}
+
+// ============================================================
+// 2. OTP
+// ============================================================
+
+function OTPScreen({user, onVerified}) {
+  const [otp, setOtp] = useState('');
+
+  const verifyOTP = () => {
+    // DEMO OTP
+    if (otp === '528913') {
+      Alert.alert('Success', 'OTP Verified ✓');
+
+      onVerified();
+    } else {
+      Alert.alert(
+        'Wrong OTP',
+        'Demo OTP: 528913',
+      );
+    }
+  };
+
+  return (
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.logo}>MachineGo</Text>
+
+      <Text style={styles.title}>2. Verify OTP</Text>
+
+      <Text style={styles.info}>
+        OTP sent to:
+      </Text>
+
+      <Text style={styles.phone}>
+        {user.phone}
+      </Text>
+
+      <TextInput
+        style={styles.input}
+        placeholder="Enter 6 Digit OTP"
+        keyboardType="number-pad"
+        maxLength={6}
+        value={otp}
+        onChangeText={setOtp}
+      />
+
+      <AppButton
+        title="Verify OTP"
+        onPress={verifyOTP}
+      />
+
+      <Text style={styles.location}>
+        📍 Live Location will be connected here
+      </Text>
+    </ScrollView>
+  );
+}
+
+// ============================================================
+// 3. LOGIN
+// ============================================================
+
+function LoginScreen({user, onLogin}) {
+  const [method, setMethod] = useState('password');
+  const [password, setPassword] = useState('');
+  const [loginOtp, setLoginOtp] = useState('');
+
+  const login = () => {
+    if (method === 'password') {
+      onLogin();
+      return;
+    }
+
+    if (loginOtp === '528913') {
+      onLogin();
+    } else {
+      Alert.alert(
+        'OTP Error',
+        'Demo OTP: 528913',
+      );
+    }
+  };
+
+  return (
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.logo}>MachineGo</Text>
+
+      <Text style={styles.title}>3. Login</Text>
+
+      <Text style={styles.info}>
+        Welcome {user.name}
+      </Text>
+
+      <View style={styles.row}>
+        <TouchableOpacity
+          style={[
+            styles.tab,
+            method === 'password' && styles.activeTab,
+          ]}
+          onPress={() => setMethod('password')}>
+          <Text>Password</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.tab,
+            method === 'otp' && styles.activeTab,
+          ]}
+          onPress={() => setMethod('otp')}>
+          <Text>OTP</Text>
+        </TouchableOpacity>
+      </View>
+
+      <TextInput
+        style={styles.input}
+        placeholder="Phone / Email"
+        value={user.phone}
+        editable={false}
+      />
+
+      {method === 'password' ? (
+        <TextInput
+          style={styles.input}
+          placeholder="Password"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
+      ) : (
+        <TextInput
+          style={styles.input}
+          placeholder="6 Digit OTP"
+          keyboardType="number-pad"
+          maxLength={6}
+          value={loginOtp}
+          onChangeText={setLoginOtp}
+        />
+      )}
+
+      <AppButton
+        title="Login"
+        onPress={login}
+      />
+    </ScrollView>
+  );
+}
+
+// ============================================================
+// 4. HOME
+// ============================================================
+
+function HomeScreen({onCategory, onMenu}) {
+  return (
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.logo}>MachineGo</Text>
+
+      <Text style={styles.title}>
+        4. Home
+      </Text>
+
+      <Text style={styles.location}>
+        📍 Live Location
+      </Text>
+
+      <Text style={styles.locationText}>
+        Location will be connected with GPS
+      </Text>
+
+      <Text style={styles.subtitle}>
+        Select Service
+      </Text>
+
+      <AppButton
+        title="1. JUKI / JACK / SIRUBA"
+        onPress={() => onCategory('juki')}
+      />
+
+      <AppButton
+        title="2. GENERAL / MOTOR / BOARD / PEDAL"
+        onPress={() => onCategory('general')}
+      />
+
+      <AppButton
+        title="3. ELECTRICIAN / WIRING / LIGHT / PLUG"
+        onPress={() => onCategory('electrician')}
+      />
+
+      <AppButton
+        title="Profile"
+        onPress={() => onMenu('profile')}
+      />
+    </ScrollView>
+  );
+}
+
+// ============================================================
+// 5. BREAKDOWN
+// ============================================================
+
+function BreakdownScreen({
+  category,
+  onSubmit,
+  onBack,
+}) {
+  const [machineType, setMachineType] =
+    useState('SN-001');
+
+  const [description, setDescription] =
+    useState('');
+
+  const code =
+    DATABASE.breakdown_codes[machineType];
+
+  const submit = () => {
+    if (!description) {
+      Alert.alert(
+        'Error',
+        'Machine problem එක විස්තර කරන්න.',
+      );
+      return;
+    }
+
+    onSubmit({
+      category,
+      machineType,
+      description,
+      priceMin: code.min,
+      priceMax: code.max,
+    });
+  };
+
+  return (
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.title}>
+        5. Breakdown Form
+      </Text>
+
+      <Text style={styles.info}>
+        Category: {category}
+      </Text>
+
+      <Text style={styles.subtitle}>
+        Select Machine
+      </Text>
+
+      {Object.keys(
+        DATABASE.breakdown_codes,
+      ).map(item => (
+        <TouchableOpacity
+          key={item}
+          style={[
+            styles.machineButton,
+            machineType === item &&
+              styles.selectedMachine,
+          ]}
+          onPress={() =>
+            setMachineType(item)
+          }>
+          <Text>
+            {item} -{' '}
+            {DATABASE.breakdown_codes[item].type}
+          </Text>
+
+          <Text>
+            LKR{' '}
+            {DATABASE.breakdown_codes[item].min}
+            -
+            {DATABASE.breakdown_codes[item].max}
+          </Text>
+        </TouchableOpacity>
+      ))}
+
+      <TextInput
+        style={[
+          styles.input,
+          styles.textArea,
+        ]}
+        placeholder="Describe Machine Problem"
+        multiline
+        value={description}
+        onChangeText={setDescription}
+      />
+
+      <Text style={styles.info}>
+        📷 Photo Upload: Max 4 Photos
+      </Text>
+
+      <Text style={styles.info}>
+        🗺️ Live Map: Will connect later
+      </Text>
+
+      <Text style={styles.price}>
+        Labour: LKR {code.min} - {code.max}
+      </Text>
+
+      <Text style={styles.info}>
+        Minimum Service: LKR 1000
+      </Text>
+
+      <Text style={styles.info}>
+        Petrol:
+        {' '}
+        0-10km LKR 500 |
+        10-25km LKR 800 |
+        25km+ LKR 1000
+      </Text>
+
+      <AppButton
+        title="Submit Breakdown"
+        onPress={submit}
+      />
+
+      <AppButton
+        title="Back"
+        onPress={onBack}
+      />
+    </ScrollView>
+  );
+}
+
+// ============================================================
+// 6. BOOKING
+// ============================================================
+
+function BookingScreen({
+  booking,
+  onConfirm,
+  onCancel,
+}) {
+  const [seconds, setSeconds] =
+    useState(28 * 60 + 42);
+
+  const [onOff, setOnOff] =
+    useState(true);
+
+  useEffect(() => {
+    if (!onOff || seconds <= 0) {
+      return;
+    }
+
+    const timer = setInterval(() => {
+      setSeconds(prev => {
+        if (prev <= 1) {
+          clearInterval(timer);
+
+          Alert.alert(
+            'Booking Expired',
+            'Booking timer finished.',
+          );
+
+          return 0;
+        }
+
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () =>
+      clearInterval(timer);
+  }, [onOff]);
+
+  const minutes =
+    Math.floor(seconds / 60);
+
+  const secs =
+    seconds % 60;
+
+  const time =
+    `00:${String(minutes).padStart(2, '0')}:${String(
+      secs,
+    ).padStart(2, '0')}`;
+
+  return (
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.title}>
+        6. Booking
+      </Text>
+
+      <Text style={styles.bookingId}>
+        Booking ID: #BK-784392
+      </Text>
+
+      <Text style={styles.info}>
+        Category: {booking.category}
+      </Text>
+
+      <Text style={styles.info}>
+        Machine: {booking.machineType}
+      </Text>
+
+      <Text style={styles.info}>
+        Problem: {booking.description}
+      </Text>
+
+      <Text style={styles.timer}>
+        {time}
+      </Text>
+
+      <Text style={styles.info}>
+        Booking Timer
+      </Text>
+
+      <AppButton
+        title={onOff ? 'Timer ON' : 'Timer OFF'}
+        onPress={() => setOnOff(!onOff)}
+      />
+
+      <Text style={styles.price}>
+        Labour: LKR {booking.priceMin} -{' '}
+        {booking.priceMax}
+      </Text>
+
+      <Text style={styles.price}>
+        Petrol: LKR 500 - 1000
+      </Text>
+
+      <AppButton
+        title="✓ Confirm Booking"
+        onPress={onConfirm}
+      />
+
+      <AppButton
+        title="✕ Cancel Booking"
+        danger
+        onPress={onCancel}
+      />
+    </ScrollView>
+  );
+}
+
+// ============================================================
+// 7. BASEMENT
+// ============================================================
+
+function BasementScreen({
+  onBack,
+  onProfile,
+}) {
+  return (
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.title}>
+        7. Basement
+      </Text>
+
+      <Text style={styles.subtitle}>
+        B1 - Tools / Spare Parts
+      </Text>
+
+      <Text style={styles.info}>
+        Tools and sewing machine spare parts
+      </Text>
+
+      <Text style={styles.subtitle}>
+        B2 - Heavy Machinery
+      </Text>
+
+      <Text style={styles.info}>
+        Sale / Rent
+      </Text>
+
+      <Text style={styles.price}>
+        Excavator Sale: LKR 89,500
+      </Text>
+
+      <Text style={styles.price}>
+        Excavator Rent: Per Day
+      </Text>
+
+      <AppButton
+        title="Go to Profile"
+        onPress={onProfile}
+      />
+
+      <AppButton
+        title="Back Home"
+        onPress={onBack}
+      />
+    </ScrollView>
+  );
+}
+
+// ============================================================
+// 8. PROFILE
+// ============================================================
+
+function ProfileScreen({
+  user,
+  onLogout,
+  onHome,
+}) {
+  return (
+    <ScrollView contentContainerStyle={styles.container}>
+      <Text style={styles.title}>
+        8. Profile
+      </Text>
+
+      <Text style={styles.profile}>
+        👤 {user.name}
+      </Text>
+
+      <Text style={styles.info}>
+        📱 {user.phone}
+      </Text>
+
+      <Text style={styles.subtitle}>
+        Dashboards
+      </Text>
+
+      <Text style={styles.info}>
+        🔧 Mechanic Dashboard
+      </Text>
+
+      <Text style={styles.info}>
+        ⚡ Electrician Dashboard
+      </Text>
+
+      <Text style={styles.info}>
+        ⚙️ General Dashboard
+      </Text>
+
+      <AppButton
+        title="Home"
+        onPress={onHome}
+      />
+
+      <AppButton
+        title="Logout"
+        danger
+        onPress={onLogout}
+      />
+    </ScrollView>
+  );
+}
+
+// ============================================================
+// FIXED MENU
+// ============================================================
+
+function FixedMenu({
+  onHome,
+  onBreakdown,
+  onProfile,
+  onLogout,
+}) {
+  return (
+    <View style={styles.menu}>
+      <TouchableOpacity onPress={onHome}>
+        <Text>🏠 Home</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={onBreakdown}>
+        <Text>🔧 Jobs</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={onBreakdown}>
+        <Text>⚠️ Breakdown</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={onProfile}>
+        <Text>👤 Profile</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={onLogout}>
+        <Text>🚪 Logout</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
+
+// ============================================================
+// MAIN APP
+// ============================================================
+
+export default function App() {
+  const [screen, setScreen] =
+    useState('signup');
+
+  const [user, setUser] =
+    useState({
+      name: '',
+      phone: '',
+    });
+
+  const [selectedCategory, setSelectedCategory] =
+    useState('');
+
+  const [booking, setBooking] =
+    useState(null);
+
+  // ----------------------------------------------------------
+  // SIGNUP
+  // ----------------------------------------------------------
+
+  if (screen === 'signup') {
+    return (
+      <SignupScreen
+        onNext={data => {
+          setUser(data);
+          setScreen('otp');
+        }}
+      />
+    );
+  }
+
+  // ----------------------------------------------------------
+  // OTP
+  // ----------------------------------------------------------
+
+  if (screen === 'otp') {
+    return (
+      <OTPScreen
+        user={user}
+        onVerified={() =>
+          setScreen('login')
+        }
+      />
+    );
+  }
+
+  // ----------------------------------------------------------
+  // LOGIN
+  // ----------------------------------------------------------
+
+  if (screen === 'login') {
+    return (
+      <LoginScreen
+        user={user}
+        onLogin={() =>
+          setScreen('home')
+        }
+      />
+    );
+  }
+
+  // ----------------------------------------------------------
+  // HOME
+  // ----------------------------------------------------------
+
+  if (screen === 'home') {
+    return (
+      <View style={styles.screen}>
+        <HomeScreen
+          onCategory={category => {
+            setSelectedCategory(category);
+            setScreen('breakdown');
+          }}
+          onMenu={item => {
+            if (item === 'profile') {
+              setScreen('profile');
+            }
+          }}
+        />
+
+        <FixedMenu
+          onHome={() =>
+            setScreen('home')
+          }
+          onBreakdown={() =>
+            setScreen('breakdown')
+          }
+          onProfile={() =>
+            setScreen('profile')
+          }
+          onLogout={() => {
+            setUser({
+              name: '',
+              phone: '',
+            });
+
+            setScreen('signup');
+          }}
+        />
+      </View>
+    );
+  }
+
+  // ----------------------------------------------------------
+  // BREAKDOWN
+  // ----------------------------------------------------------
+
+  if (screen === 'breakdown') {
+    return (
+      <View style={styles.screen}>
+        <BreakdownScreen
+          category={selectedCategory}
+          onSubmit={data => {
+            setBooking(data);
+            setScreen('booking');
+          }}
+          onBack={() =>
+            setScreen('home')
+          }
+        />
+
+        <FixedMenu
+          onHome={() =>
+            setScreen('home')
+          }
+          onBreakdown={() =>
+            setScreen('breakdown')
+          }
+          onProfile={() =>
+            setScreen('profile')
+          }
+          onLogout={() =>
+            setScreen('signup')
+          }
+        />
+      </View>
+    );
+  }
+
+  // ----------------------------------------------------------
+  // BOOKING
+  // ----------------------------------------------------------
+
+  if (screen === 'booking') {
+    return (
+      <View style={styles.screen}>
+        <BookingScreen
+          booking={booking}
+          onConfirm={() => {
+            Alert.alert(
+              'Booking Confirmed ✓',
+              'Mechanic will receive the job.',
+            );
+
+            setScreen('basement');
+          }}
+          onCancel={() => {
+            Alert.alert(
+              'Booking Cancelled',
+              'Booking has been cancelled.',
+            );
+
+            setScreen('home');
+          }}
+        />
+
+        <FixedMenu
+          onHome={() =>
+            setScreen('home')
+          }
+          onBreakdown={() =>
+            setScreen('breakdown')
+          }
+          onProfile={() =>
+            setScreen('profile')
+          }
+          onLogout={() =>
+            setScreen('signup')
+          }
+        />
+      </View>
+    );
+  }
+
+  // ----------------------------------------------------------
+  // BASEMENT
+  // ----------------------------------------------------------
+
+  if (screen === 'basement') {
+    return (
+      <View style={styles.screen}>
+        <BasementScreen
+          onBack={() =>
+            setScreen('home')
+          }
+          onProfile={() =>
+            setScreen('profile')
+          }
+        />
+
+        <FixedMenu
+          onHome={() =>
+            setScreen('home')
+          }
+          onBreakdown={() =>
+            setScreen('breakdown')
+          }
+          onProfile={() =>
+            setScreen('profile')
+          }
+          onLogout={() =>
+            setScreen('signup')
+          }
+        />
+      </View>
+    );
+  }
+
+  // ----------------------------------------------------------
+  // PROFILE
+  // ----------------------------------------------------------
+
+  if (screen === 'profile') {
+    return (
+      <View style={styles.screen}>
+        <ProfileScreen
+          user={user}
+          onHome={() =>
+            setScreen('home')
+          }
+          onLogout={() => {
+            setUser({
+              name: '',
+              phone: '',
+            });
+
+            setBooking(null);
+            setScreen('signup');
+          }}
+        />
+
+        <FixedMenu
+          onHome={() =>
+            setScreen('home')
+          }
+          onBreakdown={() =>
+            setScreen('breakdown')
+          }
+          onProfile={() =>
+            setScreen('profile')
+          }
+          onLogout={() => {
+            setUser({
+              name: '',
+              phone: '',
+            });
+
+            setBooking(null);
+            setScreen('signup');
+          }}
+        />
+      </View>
+    );
+  }
+
+  return null;
+}
+
+// ============================================================
+// STYLES
+// ============================================================
+
+const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+  },
+
+  container: {
+    padding: 20,
+    paddingTop: 50,
+    paddingBottom: 100,
+  },
+
+  logo: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+
+  subtitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 20,
+    marginBottom: 10,
+  },
+
+  info: {
+    fontSize: 15,
+    marginVertical: 6,
+  },
+
+  phone: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+
+  location: {
+    fontSize: 16,
+    marginTop: 20,
+  },
+
+  locationText: {
+    marginBottom: 20,
+  },
+
+  input: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 13,
+    marginBottom: 12,
+    backgroundColor: '#fff',
+  },
+
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
+  },
+
+  button: {
+    padding: 15,
+    borderRadius: 8,
+    marginVertical: 6,
+    backgroundColor: '#1976D2',
+    alignItems: 'center',
+  },
+
+  dangerButton: {
+    backgroundColor: '#D32F2F',
+  },
+
+  buttonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+
+  success: {
+    color: 'green',
+    fontWeight: 'bold',
+    marginVertical: 10,
+  },
+
+  price: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    marginVertical: 8,
+  },
+
+  row: {
+    flexDirection: 'row',
+    marginBottom: 15,
+  },
+
+  tab: {
+    flex: 1,
+    padding: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+
+  activeTab: {
+    backgroundColor: '#ddd',
+  },
+
+  machineButton: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginVertical: 4,
+  },
+
+  selectedMachine: {
+    borderWidth: 2,
+  },
+
+  bookingId: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 15,
+  },
+
+  timer: {
+    fontSize: 42,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginVertical: 20,
+  },
+
+  profile: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginVertical: 15,
+  },
+
+  menu: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 65,
+    borderTopWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+});
