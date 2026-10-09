@@ -1,0 +1,13 @@
+{
+  "expo": {
+    "name": "MACHINE-GO",
+    "slug": "MACHINE-GO",
+    "version": "1.0.0",
+    "android": {
+      "package": "com.machinego.app"
+    },
+    "ios": {
+      "bundleIdentifier": "com.machinego.app"
+    }
+  }
+}
