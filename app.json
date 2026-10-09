@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "MACHINE-GO",
+    "slug": "machine-go",
+    "version": "1.0.0",
+    "owner": "anushkakumaras-team",
+    "android": {
+      "package": "com.machinego.app"
+    },
+    "ios": {
+      "bundleIdentifier": "com.machinego.app"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "c8181822-6ad2-4a92-9fc3-7691c9f9ce85"
+      }
+    }
+  }
+}
