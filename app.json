@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "Machinego",
+    "slug": "machinego",
+    "owner": "anushkakumaras-team",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "extra": {
+      "eas": {
+        "projectId": "129112fb-5f4d-465e-bc82-0d479677c030"
+      }
+    },
+    "android": {
+      "package": "com.machinego.customer"
+    }
+  }
+}
